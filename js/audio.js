@@ -14,6 +14,7 @@ let kiranSound;
 let kotsuzumiSound;
 let kadomatsuSound;
 let taikoSound;
+let voiceSound;
 
 /* ==========================================================
    Initialize
@@ -28,6 +29,8 @@ window.addEventListener("DOMContentLoaded", () => {
     kadomatsuSound = document.querySelector("#kadomatsuSound");
 
     taikoSound = document.querySelector("#taikoSound");
+
+    voiceSound = document.querySelector("#voiceSound");
 
     initializeAudio();
 
@@ -60,6 +63,12 @@ function initializeAudio() {
     if (taikoSound) {
 
         taikoSound.volume = 1.00;
+
+    }
+
+    if (voiceSound) {
+
+        voiceSound.volume = 0.95;
 
     }
 
@@ -138,6 +147,17 @@ function playTaiko() {
 }
 
 /* ==========================================================
+   音声ナレーション(Happy New Year!)
+========================================================== */
+
+function playVoice() {
+
+    playAudio(voiceSound);
+
+}
+
+
+/* ==========================================================
    Stop
 ========================================================== */
 
@@ -151,7 +171,9 @@ function stopAllAudio() {
 
         kadomatsuSound,
 
-        taikoSound
+        taikoSound,
+
+        voiceSound
 
     ];
 

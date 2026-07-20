@@ -57,9 +57,80 @@ window.addEventListener("DOMContentLoaded", () => {
 
         console.log("Marker Lost");
 
+        //--------------------------------------------------
+        // 演出をリセットして、再認識時に
+        // もう一度最初から再生できるようにする
+        //--------------------------------------------------
+
+        if (typeof resetAnimation === "function") {
+
+            resetAnimation();
+
+        }
+
+        animationStarted = false;
+
     });
 
+    //------------------------------------------------------
+    // デバッグ起動ボタン
+    // ?debug=1 の時だけ表示し、マーカーなしでテスト可能にする
+    //------------------------------------------------------
+
+    setupDebugButton();
+
 });
+
+
+/* ==========================================================
+   Debug Button
+========================================================== */
+
+function setupDebugButton() {
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("debug") !== "1") {
+
+        return;
+
+    }
+
+    const btn = document.querySelector("#debugStartBtn");
+
+    if (!btn) {
+
+        return;
+
+    }
+
+    btn.classList.remove("debug");
+
+    btn.style.display = "block";
+
+    btn.addEventListener("click", () => {
+
+        console.log("Debug Start");
+
+        //--------------------------------------------------
+        // 何度でも再テストできるように、毎回リセットしてから開始
+        //--------------------------------------------------
+
+        if (typeof resetAnimation === "function") {
+
+            resetAnimation();
+
+        }
+
+        animationStarted = false;
+
+        animationStarted = true;
+
+        startAnimation();
+
+    });
+
+}
 
 
 /* ==========================================================
@@ -69,6 +140,18 @@ window.addEventListener("DOMContentLoaded", () => {
 async function startAnimation() {
 
     console.log("Animation Start");
+
+    //------------------------------------------------------
+    // STEP 0
+    // フォント/3Dテキスト構築の完了待ち
+    // (通信が遅い環境でマーカーが先に見つかった場合の対策)
+    //------------------------------------------------------
+
+    if (typeof waitForTextReady === "function") {
+
+        await waitForTextReady();
+
+    }
 
     //------------------------------------------------------
     // STEP 1
@@ -89,6 +172,8 @@ async function startAnimation() {
     showHappy();
 
     playKotsuzumi();
+
+    playVoice();
 
     await wait(900);
 
