@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Happy New Year AR</title>
+
+    <!-- スマホ対応 -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+    <!-- AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+    <!-- anime.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- JavaScript -->
+    <script src="js/audio.js"></script>
+    <script src="js/light.js"></script>
+    <script src="js/text.js"></script>
+    <script src="js/confetti.js"></script>
+    <script src="js/main.js"></script>
+
+</head>
+
+<body style="margin:0; overflow:hidden;">
+
+<a-scene
+
+    embedded
+    vr-mode-ui="enabled:false"
+    renderer="logarithmicDepthBuffer:true;"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+
+    <!--=========================
+            Assets
+    ==========================-->
+
+    <a-assets>
+
+        <!-- 効果音 -->
+        <audio id="kiranSound" src="assets/audio/kiran.mp3"></audio>
+
+        <audio id="panSound" src="assets/audio/pan.mp3"></audio>
+
+        <audio id="voiceSound" src="assets/audio/happynewyear.mp3"></audio>
+
+        <!-- キラキラ画像 -->
+        <img id="sparkle"
+             src="assets/image/sparkle.png">
+
+    </a-assets>
+
+
+    <!--=========================
+           Hiro Marker
+    ==========================-->
+
+    <a-marker
+
+        id="hiroMarker"
+
+        preset="hiro">
+
+        <!--=====================
+            光エフェクト
+        ======================-->
+
+        <a-plane
+
+            id="light"
+
+            position="-0.4 -0.4 0.02"
+
+            rotation="0 0 0"
+
+            width="0.8"
+
+            height="0.05"
+
+            material="src:#sparkle;
+                      transparent:true;
+                      opacity:0;">
+
+        </a-plane>
+
+
+        <!--=====================
+              Happy
+        ======================-->
+
+        <a-text
+
+            id="happyText"
+
+            value="Happy"
+
+            color="#FFD700"
+
+            align="center"
+
+            width="4"
+
+            position="0 0.35 0.05"
+
+            scale="0 0 0">
+
+        </a-text>
+
+
+        <!--=====================
+                New
+        ======================-->
+
+        <a-text
+
+            id="newText"
+
+            value="New"
+
+            color="#FFD700"
+
+            align="center"
+
+            width="4"
+
+            position="0 0.05 0.05"
+
+            scale="0 0 0">
+
+        </a-text>
+
+
+        <!--=====================
+                Year!
+        ======================-->
+
+        <a-text
+
+            id="yearText"
+
+            value="Year!"
+
+            color="#FFD700"
+
+            align="center"
+
+            width="4"
+
+            position="0 -0.25 0.05"
+
+            scale="0 0 0">
+
+        </a-text>
+
+
+        <!--=====================
+           紙吹雪を生成する親
+        ======================-->
+
+        <a-entity
+
+            id="confettiRoot"
+
+            position="0 0 0.03">
+
+        </a-entity>
+
+    </a-marker>
+
+
+    <!--=========================
+            Camera
+    ==========================-->
+
+    <a-entity camera></a-entity>
+
+</a-scene>
+
+</body>
+
+</html>
