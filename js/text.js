@@ -1,8 +1,7 @@
 /* ==========================================================
    Happy New Year AR
    text.js
-   Version 2
-   Part 1
+   Version 3 (単語単位で生成する版)
 ========================================================== */
 
 "use strict";
@@ -15,17 +14,13 @@ let textRoot = null;
 
 let font = null;
 
-const textGroups = {
+const textMeshes = {
 
     happy: null,
-
     new: null,
-
     year: null
 
 };
-
-const textMeshes = [];
 
 const TEXT_COLOR = 0xf5d46b;
 
@@ -35,18 +30,25 @@ const TEXT_ROUGHNESS = 0.22;
 
 const TEXT_DEPTH = 0.18;
 
+// フォントサイズ = シーン上のメートル値をそのまま使う
+// (旧版は TEXT_SIZE * 100 を渡していたため、
+//  文字ジオメトリだけが実寸の約100倍で生成され、
+//  配置座標(0.1〜0.4m台)と一致しないバグがあった)
 const TEXT_SIZE = 0.22;
-
-const LETTER_SPACING = 0.17;
 
 const LINE_SPACING = 0.42;
 
+const BEVEL_THICKNESS = 0.015;
+
+const BEVEL_SIZE = 0.010;
+
 
 /* ==========================================================
-   Material
+   Base Material
+   ※ 各単語はこれを clone() して使う(共有禁止)
 ========================================================== */
 
-const textMaterial = new THREE.MeshStandardMaterial({
+const baseMaterial = new THREE.MeshStandardMaterial({
 
     color: TEXT_COLOR,
 
@@ -64,6 +66,20 @@ const textMaterial = new THREE.MeshStandardMaterial({
 
 
 /* ==========================================================
+   Ready State
+   (main.js がフォント読み込み完了を待てるようにする)
+========================================================== */
+
+let resolveTextReady;
+
+const textReadyPromise = new Promise((resolve) => {
+
+    resolveTextReady = resolve;
+
+});
+
+
+/* ==========================================================
    Initialize
 ========================================================== */
 
@@ -75,13 +91,27 @@ window.addEventListener("DOMContentLoaded", async () => {
 
         console.error("textRoot Not Found");
 
+        resolveTextReady();
+
         return;
 
     }
 
-    await loadFont();
+    try {
 
-    buildAllText();
+        await loadFont();
+
+        buildAllText();
+
+    } catch (error) {
+
+        console.error("Text Build Failed", error);
+
+    } finally {
+
+        resolveTextReady();
+
+    }
 
 });
 
@@ -131,15 +161,15 @@ async function loadFont() {
 
 function buildAllText() {
 
-    textGroups.happy = buildWord(
+    textMeshes.happy = buildWord(
 
         "Happy",
 
-        0.0
+        0
 
     );
 
-    textGroups.new = buildWord(
+    textMeshes.new = buildWord(
 
         "New",
 
@@ -147,7 +177,7 @@ function buildAllText() {
 
     );
 
-    textGroups.year = buildWord(
+    textMeshes.year = buildWord(
 
         "Year!",
 
@@ -159,97 +189,110 @@ function buildAllText() {
 
 
 /* ==========================================================
-   Build Word
+   opentype.js の Path → Three.js の Shapes へ変換
+   ※ opentype.js の Path オブジェクトには toShapes() が無い。
+      toShapes() は Three.js の ShapePath 側のメソッドなので、
+      commands(M/L/C/Q/Z)を手動でShapePathに描き直す。
 ========================================================== */
 
-function buildWord(
+function opentypePathToShapes(otPath) {
 
-    word,
+    const shapePath = new THREE.ShapePath();
 
-    y
+    otPath.commands.forEach((cmd) => {
 
-){
+        switch (cmd.type) {
 
-    const group = new THREE.Group();
+            case "M":
 
-    group.visible = false;
+                shapePath.moveTo(cmd.x, cmd.y);
 
-    group.position.set(
+                break;
 
-        0,
+            case "L":
 
-        y,
+                shapePath.lineTo(cmd.x, cmd.y);
 
-        0
+                break;
 
-    );
+            case "C":
 
-    let offset = 0;
+                shapePath.bezierCurveTo(
 
-    for(const ch of word){
+                    cmd.x1, cmd.y1,
 
-        const mesh = createLetter(
+                    cmd.x2, cmd.y2,
 
-            ch
+                    cmd.x, cmd.y
 
-        );
+                );
 
-        mesh.position.x = offset;
+                break;
 
-        offset += LETTER_SPACING;
+            case "Q":
 
-        group.add(mesh);
+                shapePath.quadraticCurveTo(
 
-        textMeshes.push(mesh);
+                    cmd.x1, cmd.y1,
 
-    }
+                    cmd.x, cmd.y
 
-    const width = offset - LETTER_SPACING;
+                );
 
-    group.position.x =
+                break;
 
-        -(width / 2);
+            case "Z":
 
-    textRoot.object3D.add(group);
+                shapePath.currentPath.closePath();
 
-    return group;
+                break;
+
+        }
+
+    });
+
+    return shapePath.toShapes(true);
 
 }
+
+
 /* ==========================================================
-   Create Letter
+   Build Word
+   単語まるごと1つのGeometry/Meshとして生成する
+   (文字送り・カーニングはopentype.jsに任せる)
 ========================================================== */
 
-function createLetter(character) {
+function buildWord(word, y) {
 
     if (!font) {
 
         console.error("Font Not Loaded");
 
-        return new THREE.Group();
+        return null;
 
     }
 
     //------------------------------------------------------
-    // フォントパス取得
+    // フォントパス取得(単語単位・1回だけ)
     //------------------------------------------------------
 
     const path = font.getPath(
 
-        character,
+        word,
 
         0,
 
         0,
 
-        TEXT_SIZE * 100
+        TEXT_SIZE
 
     );
 
     //------------------------------------------------------
-    // Shape生成
+    // Shape生成(opentypeのcommandsをThree.jsのShapePathへ変換)
     //------------------------------------------------------
 
-    const shapes = path.toShapes(true);
+    const shapes = opentypePathToShapes(path);
 
     //------------------------------------------------------
     // Geometry生成
@@ -265,9 +308,9 @@ function createLetter(character) {
 
             bevelEnabled: true,
 
-            bevelThickness: 0.015,
+            bevelThickness: BEVEL_THICKNESS,
 
-            bevelSize: 0.010,
+            bevelSize: BEVEL_SIZE,
 
             bevelOffset: 0,
 
@@ -294,6 +337,12 @@ function createLetter(character) {
     geometry.computeVertexNormals();
 
     //------------------------------------------------------
+    // Material(単語ごとに独立させる)
+    //------------------------------------------------------
+
+    const material = baseMaterial.clone();
+
+    //------------------------------------------------------
     // Mesh
     //------------------------------------------------------
 
@@ -301,7 +350,7 @@ function createLetter(character) {
 
         geometry,
 
-        textMaterial
+        material
 
     );
 
@@ -309,8 +358,22 @@ function createLetter(character) {
 
     mesh.receiveShadow = true;
 
+    mesh.position.set(
+
+        0,
+
+        y,
+
+        0
+
+    );
+
+    mesh.rotation.x = THREE.MathUtils.degToRad(-90);
+
+    mesh.rotation.z = THREE.MathUtils.degToRad(180);
+
     //------------------------------------------------------
-    // 初期状態
+    // 初期状態(非表示)
     //------------------------------------------------------
 
     mesh.scale.set(
@@ -323,9 +386,9 @@ function createLetter(character) {
 
     );
 
-    mesh.rotation.x = THREE.MathUtils.degToRad(-90);
+    mesh.visible = false;
 
-    mesh.rotation.z = THREE.MathUtils.degToRad(180);
+    textRoot.object3D.add(mesh);
 
     return mesh;
 
@@ -333,32 +396,28 @@ function createLetter(character) {
 
 
 /* ==========================================================
-   Utility
+   Reset
 ========================================================== */
 
-function resetWord(group){
+function resetWord(mesh) {
 
-    if(!group){
+    if (!mesh) {
 
         return;
 
     }
 
-    group.visible = false;
+    mesh.visible = false;
 
-    group.children.forEach(mesh=>{
+    mesh.scale.set(
 
-        mesh.scale.set(
+        0,
 
-            0,
+        0,
 
-            0,
+        0
 
-            0
-
-        );
-
-    });
+    );
 
 }
 
@@ -367,15 +426,16 @@ function resetWord(group){
    Reset All
 ========================================================== */
 
-function resetText(){
+function resetText() {
 
-    resetWord(textGroups.happy);
+    resetWord(textMeshes.happy);
 
-    resetWord(textGroups.new);
+    resetWord(textMeshes.new);
 
-    resetWord(textGroups.year);
+    resetWord(textMeshes.year);
 
 }
+
 
 /* ==========================================================
    Animation Setting
@@ -383,40 +443,38 @@ function resetText(){
 
 const BOUNCE_DURATION = 650;
 
-const LETTER_DELAY = 80;
-
 
 /* ==========================================================
    Public Functions
 ========================================================== */
 
-function showHappy(){
+function showHappy() {
 
-    animateWord(
+    playWord(
 
-        textGroups.happy
-
-    );
-
-}
-
-
-function showNew(){
-
-    animateWord(
-
-        textGroups.new
+        textMeshes.happy
 
     );
 
 }
 
 
-function showYear(){
+function showNew() {
 
-    animateWord(
+    playWord(
 
-        textGroups.year
+        textMeshes.new
+
+    );
+
+}
+
+
+function showYear() {
+
+    playWord(
+
+        textMeshes.year
 
     );
 
@@ -424,45 +482,19 @@ function showYear(){
 
 
 /* ==========================================================
-   Animate Word
+   Play Word
+   (旧popLetterの単語版。indexによるdelayは不要なので廃止)
 ========================================================== */
 
-function animateWord(group){
+function playWord(mesh) {
 
-    if(!group){
+    if (!mesh) {
 
         return;
 
     }
 
-    group.visible = true;
-
-    group.children.forEach((mesh,index)=>{
-
-        popLetter(
-
-            mesh,
-
-            index
-
-        );
-
-    });
-
-}
-
-
-/* ==========================================================
-   Letter Animation
-========================================================== */
-
-function popLetter(
-
-    mesh,
-
-    index
-
-){
+    mesh.visible = true;
 
     //------------------------------------------------------
     // 初期状態
@@ -496,23 +528,9 @@ function popLetter(
 
     anime({
 
-        targets:mesh.scale,
+        targets: mesh.scale,
 
-        x:[
-
-            0,
-
-            1.35,
-
-            0.88,
-
-            1.08,
-
-            1
-
-        ],
-
-        y:[
+        x: [
 
             0,
 
@@ -526,7 +544,7 @@ function popLetter(
 
         ],
 
-        z:[
+        y: [
 
             0,
 
@@ -540,11 +558,23 @@ function popLetter(
 
         ],
 
-        delay:index*LETTER_DELAY,
+        z: [
 
-        duration:BOUNCE_DURATION,
+            0,
 
-        easing:"easeOutElastic(1,.65)"
+            1.35,
+
+            0.88,
+
+            1.08,
+
+            1
+
+        ],
+
+        duration: BOUNCE_DURATION,
+
+        easing: "easeOutElastic(1,.65)"
 
     });
 
@@ -554,9 +584,9 @@ function popLetter(
 
     anime({
 
-        targets:mesh.position,
+        targets: mesh.position,
 
-        z:[
+        z: [
 
             -0.08,
 
@@ -566,11 +596,9 @@ function popLetter(
 
         ],
 
-        delay:index*LETTER_DELAY,
+        duration: 420,
 
-        duration:420,
-
-        easing:"easeOutBack"
+        easing: "easeOutBack"
 
     });
 
@@ -580,9 +608,9 @@ function popLetter(
 
     anime({
 
-        targets:mesh.rotation,
+        targets: mesh.rotation,
 
-        x:[
+        x: [
 
             THREE.MathUtils.degToRad(
 
@@ -604,23 +632,23 @@ function popLetter(
 
         ],
 
-        delay:index*LETTER_DELAY,
+        duration: 600,
 
-        duration:600,
-
-        easing:"easeOutBack"
+        easing: "easeOutBack"
 
     });
 
     //------------------------------------------------------
     // 少し光る
+    // ※ 自分専用のmaterial(clone済み)なので
+    //   他の単語には影響しない
     //------------------------------------------------------
 
     anime({
 
-        targets:textMaterial,
+        targets: mesh.material,
 
-        emissiveIntensity:[
+        emissiveIntensity: [
 
             0.12,
 
@@ -630,11 +658,9 @@ function popLetter(
 
         ],
 
-        delay:index*LETTER_DELAY,
+        duration: 450,
 
-        duration:450,
-
-        easing:"easeOutQuad"
+        easing: "easeOutQuad"
 
     });
 
@@ -645,55 +671,9 @@ function popLetter(
    Hide
 ========================================================== */
 
-function hideAllText(){
+function hideAllText() {
 
     resetText();
-
-}
-/* ==========================================================
-   Layout Utility
-========================================================== */
-
-function updateWordLayout(group){
-
-    if(!group){
-
-        return;
-
-    }
-
-    let width = 0;
-
-    group.children.forEach(mesh=>{
-
-        mesh.geometry.computeBoundingBox();
-
-        const box = mesh.geometry.boundingBox;
-
-        const w = box.max.x - box.min.x;
-
-        mesh.position.x = width;
-
-        width += w * 0.010 + LETTER_SPACING;
-
-    });
-
-    group.position.x = -(width * 0.5);
-
-}
-
-
-/* ==========================================================
-   Update All Layout
-========================================================== */
-
-function updateLayout(){
-
-    updateWordLayout(textGroups.happy);
-
-    updateWordLayout(textGroups.new);
-
-    updateWordLayout(textGroups.year);
 
 }
 
@@ -702,7 +682,7 @@ function updateLayout(){
    Marker Lost
 ========================================================== */
 
-function resetAnimation(){
+function resetAnimation() {
 
     hideAllText();
 
@@ -713,33 +693,31 @@ function resetAnimation(){
    Dispose
 ========================================================== */
 
-function disposeText(){
+function disposeText() {
 
-    Object.values(textGroups).forEach(group=>{
+    Object.values(textMeshes).forEach(mesh => {
 
-        if(!group){
+        if (!mesh) {
 
             return;
 
         }
 
-        while(group.children.length>0){
+        if (mesh.geometry) {
 
-            const mesh = group.children[0];
-
-            if(mesh.geometry){
-
-                mesh.geometry.dispose();
-
-            }
-
-            group.remove(mesh);
+            mesh.geometry.dispose();
 
         }
 
-        if(group.parent){
+        if (mesh.material) {
 
-            group.parent.remove(group);
+            mesh.material.dispose();
+
+        }
+
+        if (mesh.parent) {
+
+            mesh.parent.remove(mesh);
 
         }
 
@@ -752,35 +730,11 @@ function disposeText(){
    Rebuild
 ========================================================== */
 
-function rebuildText(){
+function rebuildText() {
 
     disposeText();
 
-    textGroups.happy = buildWord(
-
-        "Happy",
-
-        0
-
-    );
-
-    textGroups.new = buildWord(
-
-        "New",
-
-        -LINE_SPACING
-
-    );
-
-    textGroups.year = buildWord(
-
-        "Year!",
-
-        -LINE_SPACING*2
-
-    );
-
-    updateLayout();
+    buildAllText();
 
 }
 
@@ -801,20 +755,11 @@ window.resetAnimation = resetAnimation;
 
 window.rebuildText = rebuildText;
 
+window.waitForTextReady = function() {
 
-/* ==========================================================
-   Auto Layout
-========================================================== */
+    return textReadyPromise;
 
-window.addEventListener("load",()=>{
-
-    setTimeout(()=>{
-
-        updateLayout();
-
-    },300);
-
-});
+};
 
 
 /* ==========================================================
@@ -823,76 +768,20 @@ window.addEventListener("load",()=>{
 
 /*
 
-Version3
+Version4
 
 〇 日本語対応
 
-「あ」
+〇 金箔マテリアル(HDRI Environment Map)
 
-「け」
-
-「ま」
-
-「し」
-
-「て」
-
-など一文字ずつ生成
-
-
-〇 金箔マテリアル
-
-HDRI
-
-Environment Map
-
-
-〇 Outline
-
-縁取り
-
+〇 Outline(縁取り)
 
 〇 Bloom
 
-文字が少し発光
+〇 Spark(単語出現時に金色パーティクル)
 
-
-〇 Spark
-
-文字出現時に金色パーティクル
-
-
-〇 Reflection
-
-床への映り込み
-
-
-〇 Motion Blur
-
+〇 Reflection(床への映り込み)
 
 〇 Year!のみ金色を強く
-
-
-〇 Letterごとに色変更
-
-
-〇 Happy
-
-↓
-
-New
-
-↓
-
-Year!
-
-↓
-
-全体を少し拡大
-
-
-〇 和太鼓と同期して
-
-Year!が少し揺れる
 
 */
