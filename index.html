@@ -32,6 +32,35 @@
 
 <body style="margin:0; overflow:hidden;">
 
+<!-- ================================================
+     デバッグ用スタートボタン
+     通常は非表示。URLに ?debug=1 を付けた時だけ表示され、
+     Hiroマーカーなしで演出シーケンスをテストできる
+================================================= -->
+
+<button
+
+    id="debugStartBtn"
+
+    class="debug"
+
+    style="position:fixed;
+           bottom:24px;
+           left:50%;
+           transform:translateX(-50%);
+           z-index:2000;
+           padding:14px 28px;
+           font-size:16px;
+           border:none;
+           border-radius:999px;
+           background:#FFD700;
+           color:#000;
+           font-weight:bold;">
+
+    ▶ テスト再生
+
+</button>
+
 <a-scene
 
     embedded
@@ -46,11 +75,21 @@
     <a-assets>
 
         <!-- 効果音 -->
-        <audio id="kiranSound" src="assets/audio/kiran.mp3"></audio>
 
-        <audio id="panSound" src="assets/audio/pan.mp3"></audio>
+        <!-- ①光が走る演出 -->
+        <audio id="kiranSound" src="assets/audio/キラッ2.mp3"></audio>
 
-        <audio id="voiceSound" src="assets/audio/happynewyear.mp3"></audio>
+        <!-- ②文字(Happy/New/Year!)登場 -->
+        <audio id="kotsuzumiSound" src="assets/audio/小鼓（こつづみ）.mp3"></audio>
+
+        <!-- ③門松登場 -->
+        <audio id="kadomatsuSound" src="assets/audio/パパッ.mp3"></audio>
+
+        <!-- ④Year!表示完了 -->
+        <audio id="taikoSound" src="assets/audio/和太鼓でドン.mp3"></audio>
+
+        <!-- 音声ナレーション(Happy New Year!の文字表示と同時に再生) -->
+        <audio id="voiceSound" src="assets/audio/happynewyear.m4a"></audio>
 
         <!-- キラキラ画像 -->
         <img id="sparkle"
@@ -93,72 +132,18 @@
 
 
         <!--=====================
-              Happy
+           3Dテキストの親
+           (text.js が Happy / New / Year!
+            の3メッシュをここに追加する)
         ======================-->
 
-        <a-text
+        <a-entity
 
-            id="happyText"
+            id="textRoot"
 
-            value="Happy"
+            position="0 0.1 0.05">
 
-            color="#FFD700"
-
-            align="center"
-
-            width="4"
-
-            position="0 0.35 0.05"
-
-            scale="0 0 0">
-
-        </a-text>
-
-
-        <!--=====================
-                New
-        ======================-->
-
-        <a-text
-
-            id="newText"
-
-            value="New"
-
-            color="#FFD700"
-
-            align="center"
-
-            width="4"
-
-            position="0 0.05 0.05"
-
-            scale="0 0 0">
-
-        </a-text>
-
-
-        <!--=====================
-                Year!
-        ======================-->
-
-        <a-text
-
-            id="yearText"
-
-            value="Year!"
-
-            color="#FFD700"
-
-            align="center"
-
-            width="4"
-
-            position="0 -0.25 0.05"
-
-            scale="0 0 0">
-
-        </a-text>
+        </a-entity>
 
 
         <!--=====================
