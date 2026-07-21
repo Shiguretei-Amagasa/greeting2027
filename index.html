@@ -80,23 +80,19 @@
         <!-- 効果音 -->
 
         <!-- ①光が走る演出 -->
-        <audio id="kiranSound" src="assets/audio/キラッ2.mp3"></audio>
+        <audio id="kiranSound" src="assets/audio/kiran.mp3"></audio>
 
         <!-- ②文字(Happy/New/Year!)登場 -->
-        <audio id="kotsuzumiSound" src="assets/audio/小鼓（こつづみ）.mp3"></audio>
+        <audio id="kotsuzumiSound" src="assets/audio/kodutumi.mp3"></audio>
 
         <!-- ③門松登場 -->
-        <audio id="kadomatsuSound" src="assets/audio/パパッ.mp3"></audio>
+        <audio id="kadomatsuSound" src="assets/audio/pop.mp3"></audio>
 
         <!-- ④Year!表示完了 -->
-        <audio id="taikoSound" src="assets/audio/和太鼓でドン.mp3"></audio>
+        <audio id="taikoSound" src="assets/audio/wadaiko.mp3"></audio>
 
         <!-- 音声ナレーション(Happy New Year!の文字表示と同時に再生) -->
         <audio id="voiceSound" src="assets/audio/happynewyear.m4a"></audio>
-
-        <!-- キラキラ画像 -->
-        <img id="sparkle"
-             src="assets/image/sparkle.png">
 
     </a-assets>
 
@@ -127,7 +123,8 @@
 
             height="0.05"
 
-            material="src:#sparkle;
+            material="shader:flat;
+                      color:#FFD700;
                       transparent:true;
                       opacity:0;">
 
