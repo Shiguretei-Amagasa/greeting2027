@@ -19,7 +19,7 @@ let animationStarted = false;
 
 window.addEventListener("DOMContentLoaded", () => {
 
-    const marker = document.querySelector("#hiroMarker");
+    const marker = document.querySelector("#markerRoot");
 
     if (!marker) {
 
@@ -30,10 +30,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     //------------------------------------------------------
-    // Marker Found
+    // Target Found
     //------------------------------------------------------
 
-    marker.addEventListener("markerFound", () => {
+    marker.addEventListener("targetFound", () => {
 
         if (animationStarted) {
 
@@ -43,19 +43,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
         animationStarted = true;
 
-        console.log("Marker Found");
+        console.log("Target Found");
 
         startAnimation();
 
     });
 
     //------------------------------------------------------
-    // Marker Lost
+    // Target Lost
     //------------------------------------------------------
 
-    marker.addEventListener("markerLost", () => {
+    marker.addEventListener("targetLost", () => {
 
-        console.log("Marker Lost");
+        console.log("Target Lost");
 
         //--------------------------------------------------
         // 演出をリセットして、再認識時に
